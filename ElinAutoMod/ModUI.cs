@@ -3067,127 +3067,91 @@ public class ModUI : MonoBehaviour
 	{
 		if ((UnityEngine.Object)(object)_bball == (UnityEngine.Object)null)
 		{
-			GUILayout.Label("金玲功能未加载（缺少 BasketballController 组件，请检查插件入口是否已挂载）", _labelStyle);
+			GUILayout.Label("金玲模块未加载。", _labelStyle);
 			return;
 		}
 
-		GUILayout.Label("独立功能 · 与自动脚本互不影响，可单独开关", _labelSubStyle);
-		GUILayout.Space(4f);
+		// ========== 一、老虎机原生必中大奖（方案2） ==========
+		GUILayout.Label("🎰 老虎机必中大奖（原生锁定 · 无需调毫秒）", _fieldLabelStyle);
+		GUILayout.Space(3f);
 
-		// 补上「投篮」功能名称标题（与下方「拉杆机」对应，不改动任何核心功能代码）
-		GUILayout.Label("投篮", _fieldLabelStyle);
-
-		string runLabel = _bball.Enabled ? "● 运行中" : "○ 已停止";
-		GUIStyle runStyle = MakeSelectableBtnStyle(_bball.Enabled);
-		if (GUILayout.Button(runLabel, runStyle, GUILayout.Height(28f), GUILayout.Width(120f)))
+		bool autoJackpot = GUILayout.Toggle(_bball.SlotAutoJackpotEnabled, " 开启必中大奖（点老虎机开始即自动停在大奖图标）", _toggleStyle);
+		if (autoJackpot != _bball.SlotAutoJackpotEnabled)
 		{
-			_bball.ToggleEnabled();
-		}
-		GUILayout.Label("热键 Alt+B 开关（也可以直接点上面的按钮）", _labelSubStyle);
-
-		GUILayout.Space(6f);
-		DrawSeparator();
-		GUILayout.Space(6f);
-
-		GUILayout.Label($"按住时长: {_bball.HoldSeconds:0.00} 秒（默认 0.65）", _fieldLabelStyle);
-		float hold = GUILayout.HorizontalSlider(_bball.HoldSeconds, BasketballController.MinHoldSeconds, BasketballController.MaxHoldSeconds);
-		hold = Mathf.Round(hold * 100f) / 100f;
-		if (Mathf.Abs(hold - _bball.HoldSeconds) > 0.001f)
-		{
-			_bball.HoldSeconds = hold;
-			_bball.SaveConfig();
-		}
-		GUILayout.Space(4f);
-
-		GUILayout.Label($"松开后间隔: {_bball.IntervalMs:0} 毫秒", _fieldLabelStyle);
-		float interval = GUILayout.HorizontalSlider(_bball.IntervalMs, BasketballController.MinIntervalMs, BasketballController.MaxIntervalMs);
-		interval = Mathf.Round(interval / 10f) * 10f;
-		if (Mathf.Abs(interval - _bball.IntervalMs) > 0.01f)
-		{
-			_bball.IntervalMs = interval;
-			_bball.SaveConfig();
-		}
-		GUILayout.Space(4f);
-
-		int currentStamina = (EClass.pc != null) ? EClass.pc.stamina.value : 0;
-		GUILayout.Label($"精力低于等于 {_bball.StopStaminaThreshold} 时自动停止（当前精力: {currentStamina}）", _fieldLabelStyle);
-		int threshold = (int)GUILayout.HorizontalSlider((float)_bball.StopStaminaThreshold, 1f, 10f);
-		if (threshold != _bball.StopStaminaThreshold)
-		{
-			_bball.StopStaminaThreshold = threshold;
+			_bball.SlotAutoJackpotEnabled = autoJackpot;
 			_bball.SaveConfig();
 		}
 
-		GUILayout.Space(6f);
-		DrawSeparator();
-		GUILayout.Space(6f);
-
-		string stateText = "空闲";
-		if (_bball.CurrentState == BasketballController.RunState.Holding)
-		{
-			stateText = "按住中";
-		}
-		else if (_bball.CurrentState == BasketballController.RunState.Waiting)
-		{
-			stateText = "间隔等待中";
-		}
-		GUILayout.Label("当前状态: " + stateText, _labelStyle);
-
 		GUILayout.Space(4f);
-		GUILayout.Label("⚠ 真实鼠标模拟：点击作用在光标当前位置，运行前请将光标停在目标处；切勿在运行时切到其他窗口。", _labelSubStyle);
-
-		GUILayout.Space(6f);
-		DrawSeparator();
-		GUILayout.Space(6f);
-
-		GUILayout.Label("拉杆机", _fieldLabelStyle);
-		GUILayout.Label("固定按4次，间隔可自定义（毫秒），改完立即生效并保存", _labelSubStyle);
-		GUILayout.Space(4f);
-
+		GUILayout.Label("目标奖励类型：", _labelSubStyle);
 		GUILayout.BeginHorizontal();
-		GUILayout.Label("间隔1:", _labelStyle, GUILayout.Width(44f));
-		GUI.SetNextControlName("lever1Field");
-		string sInt1 = GUILayout.TextField(_bball.LeverInterval1Ms.ToString(), GUILayout.Width(58f));
-		GUILayout.Space(6f);
-		GUILayout.Label("间隔2:", _labelStyle, GUILayout.Width(44f));
-		GUI.SetNextControlName("lever2Field");
-		string sInt2 = GUILayout.TextField(_bball.LeverInterval2Ms.ToString(), GUILayout.Width(58f));
-		GUILayout.Space(6f);
-		GUILayout.Label("间隔3:", _labelStyle, GUILayout.Width(44f));
-		GUI.SetNextControlName("lever3Field");
-		string sInt3 = GUILayout.TextField(_bball.LeverInterval3Ms.ToString(), GUILayout.Width(58f));
+		if (GUILayout.Button("💰 最高金币", MakeSelectableBtnStyle(_bball.RewardMode == BasketballController.SlotRewardMode.MaxCoin), GUILayout.Height(25f)))
+		{
+			_bball.RewardMode = BasketballController.SlotRewardMode.MaxCoin;
+			_bball.SaveConfig();
+		}
+		if (GUILayout.Button("🔄 免费旋转", MakeSelectableBtnStyle(_bball.RewardMode == BasketballController.SlotRewardMode.FreeSpin), GUILayout.Height(25f)))
+		{
+			_bball.RewardMode = BasketballController.SlotRewardMode.FreeSpin;
+			_bball.SaveConfig();
+		}
+		if (GUILayout.Button("🎁 奖励关", MakeSelectableBtnStyle(_bball.RewardMode == BasketballController.SlotRewardMode.Bonus), GUILayout.Height(25f)))
+		{
+			_bball.RewardMode = BasketballController.SlotRewardMode.Bonus;
+			_bball.SaveConfig();
+		}
 		GUILayout.EndHorizontal();
 
-		if (int.TryParse(sInt1, out var int1Result) && int1Result >= BasketballController.MinLeverIntervalMs && int1Result <= BasketballController.MaxLeverIntervalMs && int1Result != _bball.LeverInterval1Ms)
-		{
-			_bball.LeverInterval1Ms = int1Result;
-			_bball.SaveConfig();
-		}
-		if (int.TryParse(sInt2, out var int2Result) && int2Result >= BasketballController.MinLeverIntervalMs && int2Result <= BasketballController.MaxLeverIntervalMs && int2Result != _bball.LeverInterval2Ms)
-		{
-			_bball.LeverInterval2Ms = int2Result;
-			_bball.SaveConfig();
-		}
-		if (int.TryParse(sInt3, out var int3Result) && int3Result >= BasketballController.MinLeverIntervalMs && int3Result <= BasketballController.MaxLeverIntervalMs && int3Result != _bball.LeverInterval3Ms)
-		{
-			_bball.LeverInterval3Ms = int3Result;
-			_bball.SaveConfig();
-		}
-
 		GUILayout.Space(4f);
-		GUILayout.Label($"当前序列：按下 → {_bball.LeverInterval1Ms}ms → 按下 → {_bball.LeverInterval2Ms}ms → 按下 → {_bball.LeverInterval3Ms}ms → 按下（共4次，不循环）", _labelSubStyle);
-		GUILayout.Space(4f);
-
-		bool leverBusy = _bball.LeverRunning;
-		string leverLabel = leverBusy ? "执行中…" : "拉杆";
-		GUIStyle leverStyle = MakeSelectableBtnStyle(leverBusy);
-		GUI.enabled = !leverBusy;
-		if (GUILayout.Button(leverLabel, leverStyle, GUILayout.Height(28f), GUILayout.Width(120f)))
+		GUIStyle leverBtnStyle = MakeSelectableBtnStyle(_bball.LeverRunning);
+		if (GUILayout.Button(_bball.LeverRunning ? "🎰 自动旋转锁定中..." : "🎰 一键必中拉一次 (Alt+A)", leverBtnStyle, GUILayout.Height(28f)))
 		{
 			_bball.TriggerLever();
 		}
-		GUI.enabled = true;
-		GUILayout.Label("热键 Alt+A 触发", _labelSubStyle);
+		GUILayout.Label("状态：" + _bball.SlotStatusText, _labelSubStyle);
+		GUILayout.Label("说明：最高金币=直接中最多筹码；免费旋转=白嫖额外旋转次数；奖励关=进内置 Bonus 小游戏。", _labelSubStyle);
+
+		GUILayout.Space(8f);
+		DrawSeparator();
+		GUILayout.Space(6f);
+
+		// ========== 二、投篮助手 ==========
+		GUILayout.Label("🏀 投篮助手（独立功能 · 热键 Alt+B 开关）", _fieldLabelStyle);
+		GUILayout.Space(3f);
+
+		GUIStyle bbBtnStyle = MakeSelectableBtnStyle(_bball.Enabled);
+		if (GUILayout.Button(_bball.Enabled ? "🏀 投篮运行中（点击停止）" : "🏀 开始自动投篮 (Alt+B)", bbBtnStyle, GUILayout.Height(28f)))
+		{
+			_bball.ToggleEnabled();
+		}
+
+		GUILayout.Space(4f);
+		GUILayout.Label($"按住左键秒数: {_bball.HoldSeconds:0.00} 秒", _labelStyle);
+		float newHold = GUILayout.HorizontalSlider(_bball.HoldSeconds, BasketballController.MinHoldSeconds, BasketballController.MaxHoldSeconds);
+		if (Mathf.Abs(newHold - _bball.HoldSeconds) > 0.005f)
+		{
+			_bball.HoldSeconds = Mathf.Round(newHold * 100f) / 100f;
+			_bball.SaveConfig();
+		}
+
+		GUILayout.Label($"松开后间隔: {_bball.IntervalMs:0} 毫秒", _labelStyle);
+		float newInt = GUILayout.HorizontalSlider(_bball.IntervalMs, BasketballController.MinIntervalMs, BasketballController.MaxIntervalMs);
+		if (Mathf.Abs(newInt - _bball.IntervalMs) > 1f)
+		{
+			_bball.IntervalMs = Mathf.Round(newInt);
+			_bball.SaveConfig();
+		}
+
+		GUILayout.Label($"体力低于等于多少停止: {_bball.StopStaminaThreshold}", _labelStyle);
+		int newSp = (int)GUILayout.HorizontalSlider((float)_bball.StopStaminaThreshold, 0f, 50f);
+		if (newSp != _bball.StopStaminaThreshold)
+		{
+			_bball.StopStaminaThreshold = newSp;
+			_bball.SaveConfig();
+		}
+
+		string bbStateText = _bball.CurrentState == BasketballController.RunState.Holding ? "按住蓄力中" : (_bball.CurrentState == BasketballController.RunState.Waiting ? "等待下次投篮" : "空闲");
+		GUILayout.Label("当前状态: " + bbStateText, _labelSubStyle);
 	}
 
 	private Texture2D MakeTex(int width, int height, Color col)
