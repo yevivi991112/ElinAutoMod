@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ElinAutoMod</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net461</TargetFramework>
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Elin">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\Elin.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BepInEx.Core">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\BepInEx\core\BepInEx.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BepInEx.Unity">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\BepInEx\core\BepInEx.Unity.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Plugins.BaseCore">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\Plugins.BaseCore.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Plugins.UI">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\Plugins.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>D:\KwDownload\elin\Elin.v0.23.362\Elin_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
