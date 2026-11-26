@@ -26,7 +26,7 @@ public class ModUI : MonoBehaviour
 	// 篮球/拉杆机功能：独立组件，不属于 AutoController 的自动脚本体系
 	private BasketballController _bball;
 
-	private float _opacity = 0.92f;
+	private float _opacity = 1f;
 
 	private Vector2 _scrollPosition = Vector2.zero;
 
@@ -139,24 +139,26 @@ public class ModUI : MonoBehaviour
 	// 与 AutoController.State 枚举（Idle..Picking 共7个值）一一对应
 	private string[] _stateNames = new string[7] { "空闲", "采集中", "战斗中", "风筝中", "撤退中", "收获中", "扫描拾取中" };
 
-	// ---------- 配色方案A：奶油白粉奶咖（高可读、柔和耐看） ----------
-	private Color _cream          = new Color(0.992f, 0.976f, 0.965f, 1f); // #FDF9F6 奶油白主底
-	private Color _clay           = new Color(0.949f, 0.902f, 0.871f, 1f); // #F2E6DE 奶咖顶栏/悬浮条底
-	private Color _rose           = new Color(0.973f, 0.882f, 0.898f, 1f); // #F8E1E5 浅樱粉悬浮态
-	private Color _ink            = new Color(0.290f, 0.216f, 0.188f, 1f); // #4A3730 可可深棕正文
-	private Color _inkSoft        = new Color(0.518f, 0.416f, 0.380f, 1f); // #846A61 柔奶咖次级字
-	private Color _moss           = new Color(0.435f, 0.612f, 0.475f, 1f); // #6F9C79 抹茶暖绿运行态
-	private Color _line           = new Color(0.886f, 0.812f, 0.765f, 1f); // #E2CFC3 浅奶咖分割线
-	private Color _sectionBg      = new Color(0.969f, 0.937f, 0.914f, 1f); // #F7EFE9 柔奶白卡片底
-	private Color _selectedOrange = new Color(0.710f, 0.357f, 0.427f, 1f); // #B55B6D 深雾玫瑰强调字
-	private Color _selectedBg     = new Color(0.831f, 0.486f, 0.553f, 1f); // #D47C8D 雾玫瑰粉选中按钮底
-	private Color _selectedText   = new Color(1.000f, 0.992f, 0.992f, 1f); // #FFFDFD 玫瑰粉底上的纯白字
+	// ---------- 配色方案A（深顶栏高层次版）：深可可顶栏 + 奶油白底 + 奶咖描边卡片 + 雾玫瑰粉点缀 ----------
+	private Color _cream          = new Color(0.988f, 0.969f, 0.953f, 1f); // #FCF7F3 奶油白主底
+	private Color _clay           = new Color(0.369f, 0.255f, 0.220f, 1f); // #5E4138 深焦糖可可顶栏（拉出上下层次）
+	private Color _rose           = new Color(0.969f, 0.859f, 0.882f, 1f); // #F7DBE1 浅樱粉悬浮态
+	private Color _ink            = new Color(0.275f, 0.196f, 0.169f, 1f); // #46322B 可可深棕正文
+	private Color _inkSoft        = new Color(0.506f, 0.396f, 0.361f, 1f); // #81655C 柔奶咖次级字
+	private Color _moss           = new Color(0.416f, 0.604f, 0.463f, 1f); // #6A9A76 抹茶暖绿运行态
+	private Color _line           = new Color(0.847f, 0.757f, 0.706f, 1f); // #D8C1B4 清晰奶咖边框/分割线
+	private Color _sectionBg      = new Color(0.957f, 0.918f, 0.886f, 1f); // #F4EAE2 奶咖微暖卡片底
+	private Color _selectedOrange = new Color(0.710f, 0.333f, 0.412f, 1f); // #B55569 深雾玫瑰强调字
+	private Color _selectedBg     = new Color(0.824f, 0.459f, 0.533f, 1f); // #D27588 雾玫瑰粉选中按钮底
+	private Color _selectedText   = new Color(1.000f, 0.988f, 0.988f, 1f); // #FFFCFC 深底上的奶油白字
+	private Color _btnBorderCol   = new Color(0.816f, 0.718f, 0.663f, 1f); // #D0B7A9 按钮细描边
+	private Color _roseBorderCol  = new Color(0.710f, 0.333f, 0.412f, 1f); // #B55569 选中按钮细描边
 
 	// 保留原字段名做兼容
 	private Color _bgColor      => _cream;
 	private Color _headerColor  => _clay;
 	private Color _accentColor  => _rose;
-	private Color _btnColor     => new Color(0.949f, 0.902f, 0.871f, 1f); // #F2E6DE 奶咖常规按钮底
+	private Color _btnColor     => new Color(0.929f, 0.875f, 0.835f, 1f); // #EDDFD5 奶咖常规按钮底
 	private Color _textColor    => _ink;
 	private Color _resizeHandleColor = new Color(0.663f, 0.573f, 0.537f, 1f);
 	private Color _resizeHoverColor  = new Color(0.831f, 0.486f, 0.553f, 1f);
@@ -487,26 +489,27 @@ public class ModUI : MonoBehaviour
 	{
 		if (_stylesReady) return;
 
-		_bgTex          = MakeTex(2, 2, _cream);
+		_bgTex          = MakeBorderedTex(16, _cream, _clay);
 		_headerTex      = MakeTex(2, 2, _clay);
-		_btnTex         = MakeTex(2, 2, _btnColor);
-		_btnHoverTex    = MakeTex(2, 2, _accentColor);
-		_sectionTex     = MakeTex(2, 2, _sectionBg);
-		_miniTex        = MakeTex(2, 2, _clay);
-		_runningBtnTex  = MakeTex(2, 2, _selectedBg);
+		_btnTex         = MakeBorderedTex(16, _btnColor, _btnBorderCol);
+		_btnHoverTex    = MakeBorderedTex(16, _accentColor, _roseBorderCol);
+		_sectionTex     = MakeBorderedTex(16, _sectionBg, _line);
+		_miniTex        = MakeBorderedTex(16, _cream, _clay);
+		_runningBtnTex  = MakeBorderedTex(16, _moss, new Color(0.30f, 0.46f, 0.34f, 1f));
 		_resizeHandleTex= MakeTex(1, 1, _resizeHandleColor);
 		_resizeHoverTex = MakeTex(1, 1, _resizeHoverColor);
-		_selectedBtnTex = MakeTex(2, 2, _selectedBg);
+		_selectedBtnTex = MakeBorderedTex(16, _selectedBg, _roseBorderCol);
 		_lineTex        = MakeTex(2, 2, _line);
 
 		_boxStyle = new GUIStyle(GUI.skin.box);
 		_boxStyle.normal.background = _bgTex;
+		_boxStyle.border = new RectOffset(2, 2, 2, 2);
 		_boxStyle.normal.textColor = _textColor;
 
 		_headerStyle = new GUIStyle(GUI.skin.label);
 		_headerStyle.fontSize = 14;
 		_headerStyle.fontStyle = FontStyle.Bold;
-		_headerStyle.normal.textColor = _ink;
+		_headerStyle.normal.textColor = _selectedText;
 		_headerStyle.alignment = TextAnchor.MiddleLeft;
 
 		_labelStyle = new GUIStyle(GUI.skin.label);
@@ -532,6 +535,7 @@ public class ModUI : MonoBehaviour
 		_btnStyle.active.textColor = _selectedOrange;
 		_btnStyle.fontSize = 13;
 		_btnStyle.fontStyle = FontStyle.Bold;
+		_btnStyle.border = new RectOffset(2, 2, 2, 2);
 		_btnStyle.padding = new RectOffset(8, 8, 4, 4);
 
 		_miniStyle = new GUIStyle(GUI.skin.button);
@@ -548,7 +552,8 @@ public class ModUI : MonoBehaviour
 		_sectionStyle = new GUIStyle(GUI.skin.box);
 		_sectionStyle.normal.background = _sectionTex;
 		_sectionStyle.normal.textColor = _textColor;
-		_sectionStyle.padding = new RectOffset(8, 8, 6, 6);
+		_sectionStyle.border = new RectOffset(2, 2, 2, 2);
+		_sectionStyle.padding = new RectOffset(9, 9, 7, 7);
 
 		_toggleStyle = new GUIStyle(GUI.skin.toggle);
 		_toggleStyle.normal.textColor = _textColor;
@@ -1242,7 +1247,7 @@ public class ModUI : MonoBehaviour
 		GUIStyle iconBtnStyle = new GUIStyle(_btnStyle);
 		iconBtnStyle.fontSize = 14;
 		iconBtnStyle.normal.background = null;
-		iconBtnStyle.normal.textColor = _ink;
+		iconBtnStyle.normal.textColor = _selectedText;
 		iconBtnStyle.hover.background = null;
 		iconBtnStyle.hover.textColor = _selectedOrange;
 
@@ -1337,7 +1342,7 @@ public class ModUI : MonoBehaviour
 		GUIStyle iconBtnStyle = new GUIStyle(_btnStyle);
 		iconBtnStyle.fontSize = 14;
 		iconBtnStyle.normal.background = null;
-		iconBtnStyle.normal.textColor = _selectedBg;
+		iconBtnStyle.normal.textColor = _selectedText;
 		iconBtnStyle.hover.background = null;
 		iconBtnStyle.hover.textColor = _selectedOrange;
 
@@ -1397,7 +1402,7 @@ public class ModUI : MonoBehaviour
 			_ctrl.TargetedGatherEnabled = nextTargeted;
 			_ctrl.SaveConfig();
 		}
-		if (GUILayout.Button(_showTargetedSubWindow ? "收起专项窗" : "专项子窗口↗", MakeSelectableBtnStyle(_showTargetedSubWindow), GUILayout.Width(84f), GUILayout.Height(22f)))
+		if (GUILayout.Button(_showTargetedSubWindow ? "收专项" : "专项窗↗", MakeSelectableBtnStyle(_showTargetedSubWindow), GUILayout.Width(84f), GUILayout.Height(22f)))
 		{
 			if (_showTargetedSubWindow)
 			{
@@ -1489,7 +1494,7 @@ public class ModUI : MonoBehaviour
 	{
 		GUI.DrawTexture(rect, (Texture)(object)_lineTex);
 		Rect fillRect = new Rect(rect.x, rect.y, rect.width * Mathf.Clamp01(pct), rect.height);
-		GUI.DrawTexture(fillRect, (Texture)(object)_headerTex);
+		GUI.DrawTexture(fillRect, (Texture)(object)_selectedBtnTex);
 	}
 
 	private void DrawSeparator()
@@ -1731,14 +1736,14 @@ public class ModUI : MonoBehaviour
 		GUIStyle comboTextStyle = new GUIStyle(_labelStyle);
 		comboTextStyle.fontStyle = FontStyle.Bold;
 		comboTextStyle.alignment = TextAnchor.MiddleLeft;
-		comboTextStyle.normal.textColor = (_basicPresetDropdownOpen || isHovered || isDirty) ? _selectedOrange : _textColor;
+		comboTextStyle.normal.textColor = _basicPresetDropdownOpen ? _selectedText : ((isHovered || isDirty) ? _selectedOrange : _textColor);
 		GUI.Label(new Rect(comboRect.x + 10f, comboRect.y, comboRect.width - arrowBoxWidth - 14f, comboRect.height), displayTitle, comboTextStyle);
 
 		GUIStyle arrowTextStyle = new GUIStyle(_labelStyle);
 		arrowTextStyle.fontStyle = FontStyle.Bold;
 		arrowTextStyle.fontSize = 12;
 		arrowTextStyle.alignment = TextAnchor.MiddleCenter;
-		arrowTextStyle.normal.textColor = (_basicPresetDropdownOpen || isHovered) ? _selectedOrange : _textColor;
+		arrowTextStyle.normal.textColor = _basicPresetDropdownOpen ? _selectedText : (isHovered ? _selectedOrange : _textColor);
 		GUI.Label(arrowRect, _basicPresetDropdownOpen ? "▲" : "▼", arrowTextStyle);
 
 		if (GUI.Button(comboRect, GUIContent.none, GUIStyle.none))
@@ -2006,7 +2011,7 @@ public class ModUI : MonoBehaviour
 		GUIStyle comboTextStyle = new GUIStyle(_labelStyle);
 		comboTextStyle.fontStyle = FontStyle.Bold;
 		comboTextStyle.alignment = TextAnchor.MiddleLeft;
-		comboTextStyle.normal.textColor = (_targetedPresetDropdownOpen || isHovered || isDirty) ? _selectedOrange : _textColor;
+		comboTextStyle.normal.textColor = _targetedPresetDropdownOpen ? _selectedText : ((isHovered || isDirty) ? _selectedOrange : _textColor);
 		GUI.Label(new Rect(comboRect.x + 10f, comboRect.y, comboRect.width - arrowBoxWidth - 14f, comboRect.height), displayTitle, comboTextStyle);
 
 		// 右侧 ▼ / ▲ 箭头
@@ -2014,7 +2019,7 @@ public class ModUI : MonoBehaviour
 		arrowTextStyle.fontStyle = FontStyle.Bold;
 		arrowTextStyle.fontSize = 12;
 		arrowTextStyle.alignment = TextAnchor.MiddleCenter;
-		arrowTextStyle.normal.textColor = (_targetedPresetDropdownOpen || isHovered) ? _selectedOrange : _textColor;
+		arrowTextStyle.normal.textColor = _targetedPresetDropdownOpen ? _selectedText : (isHovered ? _selectedOrange : _textColor);
 		GUI.Label(arrowRect, _targetedPresetDropdownOpen ? "▲" : "▼", arrowTextStyle);
 
 		if (GUI.Button(comboRect, GUIContent.none, GUIStyle.none))
@@ -3071,70 +3076,32 @@ public class ModUI : MonoBehaviour
 			return;
 		}
 
-		// ========== 一、老虎机原生必中大奖（方案2） ==========
-		GUILayout.Label("🎰 老虎机必中大奖（原生锁定 · 无需调毫秒）", _fieldLabelStyle);
-		GUILayout.Space(3f);
-
-		bool autoJackpot = GUILayout.Toggle(_bball.SlotAutoJackpotEnabled, " 开启必中大奖（点老虎机开始即自动停在大奖图标）", _toggleStyle);
-		if (autoJackpot != _bball.SlotAutoJackpotEnabled)
-		{
-			_bball.SlotAutoJackpotEnabled = autoJackpot;
-			_bball.SaveConfig();
-		}
-
+		// ========== 一、老虎机：单按钮最高金币必中 ==========
+		GUILayout.Label("老虎机（最高金币必中 · 热键 Alt+A 一键拉杆）", _fieldLabelStyle);
 		GUILayout.Space(4f);
-		GUILayout.Label("目标奖励类型：", _labelSubStyle);
-		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("💰 最高金币", MakeSelectableBtnStyle(_bball.RewardMode == BasketballController.SlotRewardMode.MaxCoin), GUILayout.Height(25f)))
+		string slotBtnText = _bball.SlotAutoJackpotEnabled ? "● 老虎机最高金币必中：已开启（点此关闭）" : "○ 老虎机最高金币必中：已关闭（点此开启）";
+		if (GUILayout.Button(slotBtnText, MakeSelectableBtnStyle(_bball.SlotAutoJackpotEnabled), GUILayout.Height(30f)))
 		{
-			_bball.RewardMode = BasketballController.SlotRewardMode.MaxCoin;
-			_bball.SaveConfig();
+			_bball.ToggleSlotJackpot();
 		}
-		if (GUILayout.Button("🔄 免费旋转", MakeSelectableBtnStyle(_bball.RewardMode == BasketballController.SlotRewardMode.FreeSpin), GUILayout.Height(25f)))
-		{
-			_bball.RewardMode = BasketballController.SlotRewardMode.FreeSpin;
-			_bball.SaveConfig();
-		}
-		if (GUILayout.Button("🎁 奖励关", MakeSelectableBtnStyle(_bball.RewardMode == BasketballController.SlotRewardMode.Bonus), GUILayout.Height(25f)))
-		{
-			_bball.RewardMode = BasketballController.SlotRewardMode.Bonus;
-			_bball.SaveConfig();
-		}
-		GUILayout.EndHorizontal();
+		GUILayout.Label("状态: " + _bball.SlotStatusText, _labelSubStyle);
 
-		GUILayout.Space(4f);
-		GUIStyle leverBtnStyle = MakeSelectableBtnStyle(_bball.LeverRunning);
-		if (GUILayout.Button(_bball.LeverRunning ? "🎰 自动旋转锁定中..." : "🎰 一键必中拉一次 (Alt+A)", leverBtnStyle, GUILayout.Height(28f)))
-		{
-			_bball.TriggerLever();
-		}
-		GUILayout.Label("状态：" + _bball.SlotStatusText, _labelSubStyle);
-		GUILayout.Label("说明：最高金币=直接中最多筹码；免费旋转=白嫖额外旋转次数；奖励关=进内置 Bonus 小游戏。", _labelSubStyle);
-
-		GUILayout.Space(8f);
+		GUILayout.Space(10f);
 		DrawSeparator();
-		GUILayout.Space(6f);
+		GUILayout.Space(8f);
 
-		// ========== 二、投篮助手 ==========
-		GUILayout.Label("🏀 投篮助手（独立功能 · 热键 Alt+B 开关）", _fieldLabelStyle);
-		GUILayout.Space(3f);
-
-		GUIStyle bbBtnStyle = MakeSelectableBtnStyle(_bball.Enabled);
-		if (GUILayout.Button(_bball.Enabled ? "🏀 投篮运行中（点击停止）" : "🏀 开始自动投篮 (Alt+B)", bbBtnStyle, GUILayout.Height(28f)))
+		// ========== 二、投篮：单按钮百发百中 ==========
+		GUILayout.Label("投篮（百发百中刷投掷经验 · 热键 Alt+B 开关）", _fieldLabelStyle);
+		GUILayout.Space(4f);
+		string bbBtnText = _bball.Enabled ? "● 自动投篮运行中（点此停止）" : "○ 开始自动投篮 (Alt+B)";
+		if (GUILayout.Button(bbBtnText, MakeSelectableBtnStyle(_bball.Enabled), GUILayout.Height(30f)))
 		{
 			_bball.ToggleEnabled();
 		}
+		GUILayout.Label("状态: " + _bball.BasketStatusText, _labelSubStyle);
 
-		GUILayout.Space(4f);
-		GUILayout.Label($"按住左键秒数: {_bball.HoldSeconds:0.00} 秒", _labelStyle);
-		float newHold = GUILayout.HorizontalSlider(_bball.HoldSeconds, BasketballController.MinHoldSeconds, BasketballController.MaxHoldSeconds);
-		if (Mathf.Abs(newHold - _bball.HoldSeconds) > 0.005f)
-		{
-			_bball.HoldSeconds = Mathf.Round(newHold * 100f) / 100f;
-			_bball.SaveConfig();
-		}
-
-		GUILayout.Label($"松开后间隔: {_bball.IntervalMs:0} 毫秒", _labelStyle);
+		GUILayout.Space(6f);
+		GUILayout.Label($"投篮间隔: {_bball.IntervalMs:0} 毫秒", _labelStyle);
 		float newInt = GUILayout.HorizontalSlider(_bball.IntervalMs, BasketballController.MinIntervalMs, BasketballController.MaxIntervalMs);
 		if (Mathf.Abs(newInt - _bball.IntervalMs) > 1f)
 		{
@@ -3149,9 +3116,23 @@ public class ModUI : MonoBehaviour
 			_bball.StopStaminaThreshold = newSp;
 			_bball.SaveConfig();
 		}
+	}
 
-		string bbStateText = _bball.CurrentState == BasketballController.RunState.Holding ? "按住蓄力中" : (_bball.CurrentState == BasketballController.RunState.Waiting ? "等待下次投篮" : "空闲");
-		GUILayout.Label("当前状态: " + bbStateText, _labelSubStyle);
+	private Texture2D MakeBorderedTex(int size, Color fill, Color border)
+	{
+		Texture2D tex = new Texture2D(size, size);
+		Color[] pixels = new Color[size * size];
+		for (int y = 0; y < size; y++)
+		{
+			for (int x = 0; x < size; x++)
+			{
+				bool isEdge = (x == 0 || y == 0 || x == size - 1 || y == size - 1);
+				pixels[y * size + x] = isEdge ? border : fill;
+			}
+		}
+		tex.SetPixels(pixels);
+		tex.Apply();
+		return tex;
 	}
 
 	private Texture2D MakeTex(int width, int height, Color col)
