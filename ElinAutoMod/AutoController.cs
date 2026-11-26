@@ -335,6 +335,8 @@ public class AutoController : MonoBehaviour
 	private bool _dfCacheIgnoreDeepWater;
 	private bool _dfCacheSwimMode;
 	private bool _dfCacheSwimRecovering;
+	private bool _dfCacheLevitating;
+	private bool _dfCacheCanWalkDeep;
 
 	private float _tickTimer;
 
@@ -367,6 +369,8 @@ public class AutoController : MonoBehaviour
 	private Map _lastMap;
 
 	private Point _lastGatherTarget;
+
+	private bool _lastGatherWasSeedTarget;
 
 	private int _gatherRetryCount;
 
@@ -2476,8 +2480,8 @@ public class AutoController : MonoBehaviour
 			_pfClosedId = new int[total];
 			_pfGScore = new int[total];
 			_pfParentXZ = new int[total];
-			_pfHeapXZ = new int[total + 1];
-			_pfHeapF = new int[total + 1];
+			_pfHeapXZ = new int[total * 4 + 1];
+			_pfHeapF = new int[total * 4 + 1];
 		}
 		_pfRunId++;
 		if (_pfRunId >= int.MaxValue - 2)
@@ -2503,7 +2507,7 @@ public class AutoController : MonoBehaviour
 	{
 		Cell c1 = cells[cx, cz];
 		Cell c2 = cells[nx, nz];
-		if (c1 == null || c2 == null || c2.outOfBounds || c2.blocked || c2.isSurrounded)
+		if (c1 == null || c2 == null || c2.outOfBounds || c2.IsSky || c2.blocked || c2.isSurrounded)
 		{
 			return false;
 		}
@@ -2521,7 +2525,7 @@ public class AutoController : MonoBehaviour
 		int mx = nx;
 		int mz = cz;
 		Cell cHoriz = cells[mx, mz];
-		if (cHoriz == null || cHoriz.outOfBounds || cHoriz.blocked)
+		if (cHoriz == null || cHoriz.outOfBounds || cHoriz.IsSky || cHoriz.blocked)
 		{
 			return false;
 		}
@@ -2539,7 +2543,7 @@ public class AutoController : MonoBehaviour
 		mx = cx;
 		mz = nz;
 		Cell cVert = cells[mx, mz];
-		if (cVert == null || cVert.outOfBounds || cVert.blocked)
+		if (cVert == null || cVert.outOfBounds || cVert.IsSky || cVert.blocked)
 		{
 			return false;
 		}
@@ -2577,6 +2581,9 @@ public class AutoController : MonoBehaviour
 		}
 
 		float now = Time.time;
+		bool curLevitating = pc.IsLevitating;
+		bool curCanWalkDeep = CanFreelyWalkDeepWater(pc)
+			|| (SwimModeEnabled && !_isSwimRecoveringOxygen && GetCurrentOxygenPercent(pc) > SwimRetreatOxygenPercent);
 		if (_dfCacheMap == EClass._map
 			&& _dfMapSize == size
 			&& _dfCachePcX == pcPos.x
@@ -2585,6 +2592,8 @@ public class AutoController : MonoBehaviour
 			&& _dfCacheIgnoreDeepWater == IgnoreDeepWater
 			&& _dfCacheSwimMode == SwimModeEnabled
 			&& _dfCacheSwimRecovering == _isSwimRecoveringOxygen
+			&& _dfCacheLevitating == curLevitating
+			&& _dfCacheCanWalkDeep == curCanWalkDeep
 			&& now >= _dfCacheTime
 			&& now - _dfCacheTime < 0.25f)
 		{
@@ -2598,6 +2607,8 @@ public class AutoController : MonoBehaviour
 		_dfCacheIgnoreDeepWater = IgnoreDeepWater;
 		_dfCacheSwimMode = SwimModeEnabled;
 		_dfCacheSwimRecovering = _isSwimRecoveringOxygen;
+		_dfCacheLevitating = curLevitating;
+		_dfCacheCanWalkDeep = curCanWalkDeep;
 		_dfCacheTime = now;
 
 		int total = size * size;
@@ -2635,6 +2646,12 @@ public class AutoController : MonoBehaviour
 		void HeapPush(int xz, int gVal)
 		{
 			heapSize++;
+			if (heapSize >= _pfHeapXZ.Length)
+			{
+				int newLen = _pfHeapXZ.Length * 2;
+				Array.Resize(ref _pfHeapXZ, newLen);
+				Array.Resize(ref _pfHeapF, newLen);
+			}
 			int idx = heapSize;
 			while (idx > 1)
 			{
@@ -2737,7 +2754,7 @@ public class AutoController : MonoBehaviour
 					int stepCost = ((dx != 0 && dz != 0) ? 14 : 10);
 					if (nc.hasDoor)
 					{
-						stepCost += 4;
+						stepCost += (HasLockedDoorOnCell(nc) ? 250 : 4);
 					}
 					if (nc.detail != null && nc.detail.charas.Count > 0)
 					{
@@ -2837,7 +2854,7 @@ public class AutoController : MonoBehaviour
 
 		Cell[,] cells = EClass._map.cells;
 		Cell destCell = cells[dest.x, dest.z];
-		if (destCell == null || destCell.outOfBounds || destCell.blocked || destCell.isSurrounded)
+		if (destCell == null || destCell.outOfBounds || destCell.IsSky || destCell.blocked || destCell.isSurrounded)
 		{
 			return false;
 		}
@@ -2867,6 +2884,12 @@ public class AutoController : MonoBehaviour
 		void HeapPush(int xz, int fVal)
 		{
 			heapSize++;
+			if (heapSize >= _pfHeapXZ.Length)
+			{
+				int newLen = _pfHeapXZ.Length * 2;
+				Array.Resize(ref _pfHeapXZ, newLen);
+				Array.Resize(ref _pfHeapF, newLen);
+			}
 			int idx = heapSize;
 			while (idx > 1)
 			{
@@ -2988,7 +3011,7 @@ public class AutoController : MonoBehaviour
 					int stepCost = ((dx != 0 && dz != 0) ? 14 : 10);
 					if (nc.hasDoor)
 					{
-						stepCost += 4;
+						stepCost += (HasLockedDoorOnCell(nc) ? 250 : 4);
 					}
 					if (nc.detail != null && nc.detail.charas.Count > 0)
 					{
@@ -3161,6 +3184,7 @@ public class AutoController : MonoBehaviour
 			}
 
 			int repathCount = 0;
+			int doorEventStuckCount = 0;
 			Point nextPt = new Point();
 			while (true)
 			{
@@ -3284,10 +3308,20 @@ public class AutoController : MonoBehaviour
 				}
 				if (moveResult == Card.MoveResult.Door || moveResult == Card.MoveResult.Event)
 				{
-					// 打开了门或触发了地形事件，若尚未移入目标格则保持当前 nodeIndex 下一回合继续走入
+					// 打开了门或触发了地形事件：若已移入则正常推进；若连续停在原地（如打不开的锁门 c_lockLv>0 或阻挡事件），最多尝试 3 次即退出，杜绝死循环
 					if (owner.pos.Equals(nextPt))
 					{
 						path.nodeIndex--;
+						doorEventStuckCount = 0;
+					}
+					else
+					{
+						doorEventStuckCount++;
+						if (doorEventStuckCount >= 3)
+						{
+							yield return Cancel();
+							yield break;
+						}
 					}
 					yield return Status.Running;
 					continue;
@@ -3304,6 +3338,7 @@ public class AutoController : MonoBehaviour
 					continue;
 				}
 
+				doorEventStuckCount = 0;
 				path.nodeIndex--;
 				if (IsSafeDestinationReached())
 				{
@@ -4091,12 +4126,12 @@ public class AutoController : MonoBehaviour
 				_anchorPosZ = z;
 			}
 		}
-		else if (CurrentState == State.Gathering || CurrentState == State.Idle || CurrentState == State.Picking || CurrentState == State.Combat || CurrentState == State.Kiting)
+		else if (CurrentState == State.Gathering || CurrentState == State.Harvesting || CurrentState == State.Idle || CurrentState == State.Picking || CurrentState == State.Combat || CurrentState == State.Kiting)
 		{
 			_stuckAutoTimer += Time.deltaTime;
 		}
 
-		if (CurrentState == State.Idle && !moved)
+		if (CurrentState == State.Idle && !moved && !(IsDungeonNavigating && IsRunningGoto(pc)))
 		{
 			_idleAutoTimer += Time.deltaTime;
 		}
@@ -4178,6 +4213,7 @@ public class AutoController : MonoBehaviour
 		_pickupFailCounts.Clear();
 		_enemyFailCounts.Clear();
 		_lastGatherTarget = null;
+		_lastGatherWasSeedTarget = false;
 		_gatherRetryCount = 0;
 		_lastMineWallTarget = null;
 		_currentCombatTarget = null;
@@ -4203,6 +4239,7 @@ public class AutoController : MonoBehaviour
 	private void ClearGatherProgressTracking()
 	{
 		_lastGatherTarget = null;
+		_lastGatherWasSeedTarget = false;
 		_gatherRetryCount = 0;
 		_lastTrapStandTarget = null;
 		if (_lastMineWallTarget != null && _lastMineWallTarget.HasBlock)
@@ -4268,25 +4305,60 @@ public class AutoController : MonoBehaviour
 		return EClass._zone != null && EClass._zone is Zone_Dungeon;
 	}
 
-	/// <summary>是否处于完全无视深水区状态（开启了"直接无视深水区"开关、位于水下地图、或角色自身拥有 429 水下呼吸能力）。</summary>
+	/// <summary>严格依据 Zone.cs / Zone_Civilized.cs / Zone_User.cs / Zone_Field.cs 判定当前地图是否为城镇、己方领地/帐篷、用户区或受法律保护的文明区。</summary>
+	private static bool IsSafeCivilizedOrLawfulZone(Zone zone)
+	{
+		if (zone == null)
+		{
+			return false;
+		}
+		return zone.IsTown || zone.IsPCFactionOrTent || zone.IsUserZone || zone.HasLaw || zone is Zone_Civilized;
+	}
+
+	/// <summary>检查格子上是否存在带锁的门（c_lockLv &gt; 0，用于寻路高权重避让，对齐 Chara.cs:3191）。</summary>
+	private static bool HasLockedDoorOnCell(Cell cell)
+	{
+		if (cell == null || !cell.hasDoor || cell.detail == null || cell.detail.things == null)
+		{
+			return false;
+		}
+		List<Thing> things = cell.detail.things;
+		for (int i = 0; i < things.Count; i++)
+		{
+			Thing t = things[i];
+			if (t != null && !((Card)t).isDestroyed && t.trait is TraitDoor && ((Card)t).c_lockLv > 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/// <summary>判定当前是否为原版会触发全图窒息的水下地图（Cell.cs:1153：IsUnderwater &amp;&amp; !IsUserZone）。</summary>
+	private static bool IsSuffocatingUnderwaterZone()
+	{
+		return EClass._zone != null && EClass._zone.IsUnderwater && !EClass._zone.IsUserZone;
+	}
+
+	/// <summary>是否处于完全免疫深水/水下窒息状态（开启了"直接无视深水区"、位于不窒息的用户水下区、或角色拥有 429 水下呼吸 / 1252 featAquatic 水生特质）。</summary>
 	private bool CanFreelyWalkDeepWater(Chara pc)
 	{
 		if (IgnoreDeepWater)
 		{
 			return true;
 		}
-		if (EClass._zone != null && EClass._zone.IsUnderwater)
+		if (EClass._zone != null && EClass._zone.IsUnderwater && EClass._zone.IsUserZone)
 		{
 			return true;
 		}
-		if (pc != null && ((Card)pc).HasElement(429, false))
+		if (pc != null && (((Card)pc).HasElement(429, false) || ((Card)pc).HasElement(1252, false)))
 		{
 			return true;
 		}
 		return false;
 	}
 
-	/// <summary>判定某格是否为原始深水格（无桥、未结冰、无浮台且会导致窒息的深水区）。</summary>
+	/// <summary>判定某格是否为原始深水格（无桥、未结冰、无浮台且会导致窒息的深水区；全图水下地图寻路本身不能把全图当禁入，其窒息保护由 TryEmergencyAshore 氧气监控接管）。</summary>
 	private bool IsRawSuffocatingDeepWater(Cell cell)
 	{
 		if (cell == null)
@@ -4322,7 +4394,8 @@ public class AutoController : MonoBehaviour
 		{
 			return false;
 		}
-		bool isPlayerZone = EClass._zone != null && (EClass._zone.IsPCFaction || EClass._zone.IsPCFactionOrTent || EClass._zone.IsUserZone);
+		// 严格对齐 TraitFloorSwitch.cs:5：仅在 IsPCFaction 或 IsUserZone 内，非敌对玩家踩负面地面陷阱不会触发（注意 Zone_Tent 不在豁免列表）
+		bool isSafeTrapZone = EClass._zone != null && (EClass._zone.IsPCFaction || EClass._zone.IsUserZone);
 		List<Thing> things = cell.detail.things;
 		for (int i = 0; i < things.Count; i++)
 		{
@@ -4333,8 +4406,7 @@ public class AutoController : MonoBehaviour
 			}
 			if (t.trait is TraitSwitch ts && ts.IsNegativeEffect && !ts.IsJammed)
 			{
-				// 玩家自己领地内布置的地雷/香蕉皮对玩家与同伴不触发（对齐 TraitTrapMine.CanActivateTrap）
-				if (isPlayerZone && (ts is TraitTrapMine || ts is TraitBananaPeel))
+				if (isSafeTrapZone && ts is TraitFloorSwitch)
 				{
 					continue;
 				}
@@ -4367,6 +4439,23 @@ public class AutoController : MonoBehaviour
 		Cell pcCell = ((Card)pc).pos?.cell;
 		bool inDeepWater = IsRawSuffocatingDeepWater(pcCell);
 		int currentOxy = GetCurrentOxygenPercent(pc);
+
+		// 全图水下窒息地图（如海底神殿/水下奈菲亚，无 429/1252 且未开无视深水）：无法靠找岸脱困，氧气降至安全阈值时自动停机防溺死
+		if (IsSuffocatingUnderwaterZone())
+		{
+			int stopThreshold = Mathf.Clamp(SwimRetreatOxygenPercent, 10, 95);
+			if (currentOxy <= stopThreshold)
+			{
+				Log("Auto-disable: underwater zone low oxygen (" + currentOxy + "% <= " + stopThreshold + "%)");
+				Msg.SayRaw("水下地图氧气不足(" + currentOxy + "%)，已自动停止防溺水");
+				Enabled = false;
+				StopDungeonNav(cancelPCAct: true);
+				CleanupState();
+				ClearPickupState();
+				return true;
+			}
+			return false;
+		}
 
 		if (SwimModeEnabled)
 		{
@@ -4452,11 +4541,10 @@ public class AutoController : MonoBehaviour
 
 	private Point FindNearestSafeShorePoint(Chara pc)
 	{
-		if (EClass._map == null)
+		if (EClass._map == null || !TryGetMapPlayableBounds(out var boundMinX, out var boundMaxX, out var boundMinZ, out var boundMaxZ))
 		{
 			return null;
 		}
-		GetGatherScanBounds(out var boundMinX, out var boundMaxX, out var boundMinZ, out var boundMaxZ);
 		int px = ((Card)pc).pos.x;
 		int pz = ((Card)pc).pos.z;
 		Point best = null;
@@ -4718,7 +4806,7 @@ public class AutoController : MonoBehaviour
 			return false;
 		}
 		EnsureSafeDistanceField(pc);
-		bool isSkyZone = ((Spatial)EClass._zone).lv > 0;
+		bool isSkyZone = EClass._zone.IsSkyLevel;
 		Point pcPos = ((Card)pc).pos;
 
 		float bestScore = float.MaxValue;
@@ -4836,6 +4924,10 @@ public class AutoController : MonoBehaviour
 		{
 			Thing thing = EClass._map.things[i];
 			if (thing == null || ((Card)thing).isDestroyed || !((Card)thing).ExistsOnMap || (int)((Card)thing).placeState != 0 || ((Card)thing).ignoreAutoPick || ((Card)thing).isMasked || ((Card)thing).isHidden)
+			{
+				continue;
+			}
+			if (((Card)thing).isNPCProperty && (EClass._zone == null || !EClass._zone.IsPCFaction))
 			{
 				continue;
 			}
@@ -5151,7 +5243,7 @@ public class AutoController : MonoBehaviour
 		}
 
 		// 地牢环境下尝试自动拆除地面已发现的陷阱（开关开启且非玩家领地时）
-		if (IsInDungeonContext() && DisarmTraps && EClass._zone != null && !EClass._zone.IsPCFaction && TryHandleTrapDisarm(pc))
+		if (IsInDungeonContext() && DisarmTraps && EClass._zone != null && !EClass._zone.IsPCFactionOrTent && !EClass._zone.IsUserZone && TryHandleTrapDisarm(pc))
 		{
 			CurrentState = State.Harvesting;
 			return;
@@ -5620,9 +5712,9 @@ public class AutoController : MonoBehaviour
 			}
 			else if (AttackChicken)
 			{
-				// 保护己方阵营/宠物/家畜与城镇安全区，仅在野外/地牢等非城镇、非己方领地中攻击中立野生/家禽动物
+				// 保护己方阵营/宠物/家畜与城镇/文明/法律/用户安全区，仅在野外/无律地牢中攻击中立野生/家禽动物（对齐 Zone.IsCrime）
 				bool safeWildContext = !chara.IsPCFaction && !chara.IsPCFactionMinion && chara.hostility == Hostility.Neutral
-					&& (EClass._zone == null || (!EClass._zone.IsTown && !EClass._zone.IsPCFaction));
+					&& (EClass._zone == null || !IsSafeCivilizedOrLawfulZone(EClass._zone));
 				if (safeWildContext)
 				{
 					// 优先使用 Elin 原生动物判定 (race.IsAnimal || HasTag(CTAG.animal))，自动覆盖鸡/鸭/鹅/羊/猪/牛/兔/鹿/渡渡鸟/火鸡等全物种
@@ -6014,7 +6106,10 @@ public class AutoController : MonoBehaviour
 
 	private Point FindNearestEdgePoint(Chara pc)
 	{
-		GetGatherScanBounds(out var minX, out var maxX, out var minZ, out var maxZ);
+		if (!TryGetMapPlayableBounds(out var minX, out var maxX, out var minZ, out var maxZ))
+		{
+			return null;
+		}
 		Point best = null;
 		float bestDist = float.MaxValue;
 		for (int x = minX; x <= maxX; x++)
@@ -6082,10 +6177,14 @@ public class AutoController : MonoBehaviour
 		}
 		else
 		{
-			minX = Mathf.Clamp(SearchMinX, bMinX, bMaxX);
-			maxX = Mathf.Clamp(SearchMaxX, bMinX, bMaxX);
-			minZ = Mathf.Clamp(SearchMinZ, bMinZ, bMaxZ);
-			maxZ = Mathf.Clamp(SearchMaxZ, bMinZ, bMaxZ);
+			int rawMinX = Mathf.Min(SearchMinX, SearchMaxX);
+			int rawMaxX = Mathf.Max(SearchMinX, SearchMaxX);
+			int rawMinZ = Mathf.Min(SearchMinZ, SearchMaxZ);
+			int rawMaxZ = Mathf.Max(SearchMinZ, SearchMaxZ);
+			minX = Mathf.Clamp(rawMinX, bMinX, bMaxX);
+			maxX = Mathf.Clamp(rawMaxX, bMinX, bMaxX);
+			minZ = Mathf.Clamp(rawMinZ, bMinZ, bMaxZ);
+			maxZ = Mathf.Clamp(rawMaxZ, bMinZ, bMaxZ);
 		}
 	}
 
@@ -6367,7 +6466,7 @@ public class AutoController : MonoBehaviour
 		{
 			return false;
 		}
-		if (EClass._zone == null || EClass._zone.IsPCFaction || EClass._zone.IsTown)
+		if (EClass._zone == null || IsSafeCivilizedOrLawfulZone(EClass._zone))
 		{
 			return false;
 		}
@@ -7075,7 +7174,7 @@ public class AutoController : MonoBehaviour
 			if (_lastGatherTarget != null)
 			{
 				bool prevCleared = (!_lastGatherTarget.HasObj && !_lastGatherTarget.HasBlock)
-					|| (_lastGatherTarget.cell != null && !_lastGatherTarget.cell.CanReapSeed());
+					|| (_lastGatherWasSeedTarget && _lastGatherTarget.cell != null && !_lastGatherTarget.cell.CanReapSeed());
 				if (prevCleared)
 				{
 					_gatherFailCounts.Remove(_lastGatherTarget.x + "," + _lastGatherTarget.z);
@@ -7173,6 +7272,7 @@ public class AutoController : MonoBehaviour
 			if (val2 != null)
 			{
 				_lastGatherTarget = target;
+				_lastGatherWasSeedTarget = isSeedTarget;
 				_lastMineWallTarget = null;
 				// 始终先用 SafeAI_Goto(gatherStandPt, 0) 精确走到无陷阱、无隔墙的安全相邻落脚格，绝不直接调用原版 TaskHarvest 内置的 DoGoto(destDist=1) 踩上陷阱！
 				bool needWalkToGatherStand = ((Card)pc).pos.Distance(target) > 1
@@ -7225,7 +7325,8 @@ public class AutoController : MonoBehaviour
 				if (altMineSlot >= 0 && altMineSlot != neededSlot)
 				{
 					Thing altThing = ToolSwitcher.GetSlotThing(altMineSlot);
-					bool altCanMine = altThing != null && (((Card)altThing).HasElement(220, false) || ((Card)altThing).HasElement(230, false) || ((target.matBlock?.category == "wood" || target.matBlock?.category == "grass") && ((Card)altThing).HasElement(225, false)));
+					// 严格对齐 TaskMine.CanMine (TaskMine.cs:36-50)：敲墙仅认 220 镐子或木/草墙的 225 斧头，不认 230 铲子
+					bool altCanMine = altThing != null && (((Card)altThing).HasElement(220, false) || ((target.matBlock?.category == "wood" || target.matBlock?.category == "grass") && ((Card)altThing).HasElement(225, false)));
 					if (altCanMine)
 					{
 						ToolSwitcher.SwitchSlot(altMineSlot);
@@ -7249,6 +7350,7 @@ public class AutoController : MonoBehaviour
 			if (needWalkToWallStand)
 			{
 				_lastGatherTarget = target;
+				_lastGatherWasSeedTarget = false;
 				if (!TryGetReachableInteractStandPoint(pc, target, allowStandOnTarget: false, combat: false, out var wallStandPt) || wallStandPt == null || !StartSafeGoto(pc, wallStandPt, 0, false))
 				{
 					RecordGatherTargetFailure(text);
@@ -7257,7 +7359,7 @@ public class AutoController : MonoBehaviour
 				}
 				return true;
 			}
-			// 若墙体表面挂有壁挂附着物 (IsBlockMount)，先剥离附着物或直接挖掘
+			// 若墙体表面挂有壁挂附着物 (IsBlockMount)，严格按原版 TaskMine.CanMine (TaskMine.cs:38) 先走 TaskHarvest 剥离，绝不直接调用 MineBlock 绕过硬度与体力
 			if (target.HasObj && target.sourceObj != null && target.sourceObj.tileType != null && target.sourceObj.tileType.IsBlockMount)
 			{
 				TaskHarvest mountAct = TaskHarvest.TryGetAct(pc, target);
@@ -7268,17 +7370,16 @@ public class AutoController : MonoBehaviour
 					if (!((BaseTaskHarvest)mountAct).IsTooHard)
 					{
 						_lastGatherTarget = target;
+						_lastGatherWasSeedTarget = false;
 						if (StartPCActImmediate(pc, (AIAct)(object)mountAct))
 						{
 							return true;
 						}
 					}
 				}
-				EClass._map.MineBlock(target, false, pc, true);
-				_gatherFailCounts.Remove(text);
-				ResetProgressAnchor(pc);
+				RecordGatherTargetFailure(text);
 				ClearGatherProgressTracking();
-				return true;
+				return false;
 			}
 			TaskMine val = new TaskMine
 			{
@@ -7295,6 +7396,7 @@ public class AutoController : MonoBehaviour
 				return false;
 			}
 			_lastGatherTarget = target;
+			_lastGatherWasSeedTarget = false;
 			_lastMineWallTarget = target.Copy();
 			if (!StartPCActImmediate(pc, (AIAct)(object)val))
 			{
@@ -7317,7 +7419,8 @@ public class AutoController : MonoBehaviour
 		{
 			return false;
 		}
-		if (((Card)((Card)pc).Tool).HasElement(220, false) || ((Card)((Card)pc).Tool).HasElement(230, false))
+		// 严格对齐 TaskMine.CanMine (TaskMine.cs:36-50)：仅认 220 采矿工具或木/草墙的 225 砍伐工具，不认 230 挖掘铲子
+		if (((Card)((Card)pc).Tool).HasElement(220, false))
 		{
 			return true;
 		}
@@ -8594,6 +8697,10 @@ public class AutoController : MonoBehaviour
 		foreach (Thing thing in EClass._map.things)
 		{
 			if (thing == null || ((Card)thing).isDestroyed || !((Card)thing).ExistsOnMap || (int)((Card)thing).placeState != 0 || ((Card)thing).ignoreAutoPick || ((Card)thing).isMasked || ((Card)thing).isHidden)
+			{
+				continue;
+			}
+			if (((Card)thing).isNPCProperty && (EClass._zone == null || !EClass._zone.IsPCFaction))
 			{
 				continue;
 			}
